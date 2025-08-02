@@ -45,8 +45,6 @@ export class MatchesGateway implements OnGatewayInit, OnGatewayConnection, OnGat
     try {
       const match = await this.matchesService.getMatch(data.matchId);
       client.join(`match-${data.matchId}`);
-
-      // Send current match state to the client
       client.emit('matchJoined', {
         message: 'Successfully joined match',
         match,
@@ -67,7 +65,6 @@ export class MatchesGateway implements OnGatewayInit, OnGatewayConnection, OnGat
     this.logger.log(`Client ${client.id} left match ${data.matchId}`);
   }
 
-  // Method to broadcast commentary updates (called from service)
   async broadcastCommentaryUpdate(matchId: string, commentary: any, match: any) {
     this.server.to(`match-${matchId}`).emit('commentaryUpdate', {
       commentary,
@@ -76,7 +73,6 @@ export class MatchesGateway implements OnGatewayInit, OnGatewayConnection, OnGat
     });
   }
 
-  // Method to broadcast match status updates
   async broadcastMatchUpdate(matchId: string, match: any) {
     this.server.to(`match-${matchId}`).emit('matchUpdate', {
       match,

@@ -1,5 +1,4 @@
 import { IsString, IsNumber, IsEnum, IsOptional, IsBoolean, Min } from 'class-validator';
-import { EventType } from '../../../types/match.types';
 
 export class AddCommentaryDto {
   @IsNumber()
@@ -7,11 +6,8 @@ export class AddCommentaryDto {
   over: number;
 
   @IsNumber()
-  @Min(1)
+  @Min(0)
   ball: number;
-
-  @IsEnum(EventType)
-  eventType: EventType;
 
   @IsNumber()
   @Min(0)
@@ -22,18 +18,14 @@ export class AddCommentaryDto {
   description?: string;
 
   @IsOptional()
-  @IsString()
-  batsman?: string;
+  @IsBoolean()
+  isSix?: boolean;
 
   @IsOptional()
-  @IsString()
-  bowler?: string;
+  @IsBoolean()
+  isFour?: boolean;
 
   @IsOptional()
   @IsBoolean()
   isWicket?: boolean;
-
-  @IsOptional()
-  @IsString()
-  wicketType?: string;
 }

@@ -47,9 +47,9 @@ export class MatchesController {
     @Body() addCommentaryDto: AddCommentaryDto,
   ) {
     const commentary = await this.matchesService.addCommentary(id, addCommentaryDto);
-    // Broadcast commentary update to socket.io clients
     const match = await this.matchesService.getMatch(id);
     await this.matchesGateway.broadcastCommentaryUpdate(id, commentary, match);
+    await this.matchesGateway.broadcastMatchUpdate(id, match);
     return {
       statusCode: HttpStatus.CREATED,
       message: 'Commentary added successfully',

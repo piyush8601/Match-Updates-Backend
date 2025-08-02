@@ -7,7 +7,7 @@ import { CreateMatchDto } from './dto/create-match.dto';
 import { AddCommentaryDto } from './dto/add-commentary.dto';
 import { CounterService } from '../counter/counter.service';
 import { RedisService } from '../../redis/redis.service';
-import { MatchStatus, EventType } from '../../types/match.types';
+import { MatchStatus } from '../../types/match.types';
 
 @Injectable()
 export class MatchesService {
@@ -30,22 +30,17 @@ export class MatchesService {
 
         const savedMatch = await match.save();
 
-        // Cache match in Redis
         await this.redisService.setObject(`match:${matchId}`, savedMatch, 3600);
 
         return savedMatch;
     }
 
     async getMatch(matchId: string): Promise<Match> {
-        // Try to get from cache first
         let match = await this.redisService.getObject<Match>(`match:${matchId}`);
         if (match) {
-            // Hydrate plain object to Mongoose document
             match = this.matchModel.hydrate(match);
-            // Populate commentary after hydration
             match = await match.populate('commentary');
         } else {
-            // If not in cache, get from database
             match = await this.matchModel
                 .findById( matchId )
                 .populate('commentary')
@@ -55,7 +50,6 @@ export class MatchesService {
                 throw new NotFoundException(`Match with ID ${matchId} not found`);
             }
 
-            // Cache for future requests
             await this.redisService.setObject(`match:${matchId}`, match, 3600);
         }
 
@@ -77,7 +71,6 @@ export class MatchesService {
             throw new BadRequestException('Cannot add commentary to a match that is not ongoing');
         }
 
-        // Validate ball number
         if (commentaryDto.ball > 6) {
             throw new BadRequestException('Ball number cannot be greater than 6');
         }
@@ -89,30 +82,23 @@ export class MatchesService {
 
         const savedCommentary: Commentary = await commentary.save();
 
-        // Update match with commentary reference
         match.commentary.push(savedCommentary.id);
 
-        // Update match scores and stats
         await this.updateMatchStats(match, commentaryDto);
 
-        // Update match in database
         await match.save();
 
-        // Update cached match
         await this.redisService.setObject(`match:${matchId}`, match, 3600);
 
-        // Cache latest 10 commentary entries
         await this.cacheLatestCommentary(matchId, savedCommentary);
 
         return savedCommentary;
     }
 
     private async updateMatchStats(match: Match, commentary: AddCommentaryDto): Promise<void> {
-        // Update current over and ball
         match.currentOver = commentary.over;
         match.currentBall = commentary.ball;
 
-        // Update scores based on batting team
         if (match.battingTeam === 'teamA') {
             match.teamAScore += commentary.runs;
             if (commentary.isWicket) {
@@ -125,25 +111,17 @@ export class MatchesService {
             }
         }
 
-        // Check if over is complete
-        if (commentary.ball === 6 && !this.isExtraDelivery(commentary.eventType)) {
-            // Switch batting team after each over (simplified logic)
+        if (commentary.ball === 6) {
             match.battingTeam = match.battingTeam === 'teamA' ? 'teamB' : 'teamA';
         }
 
-        // Check if match should end
         if (this.shouldEndMatch(match)) {
             match.status = MatchStatus.COMPLETED;
             match.endTime = new Date();
         }
     }
 
-    private isExtraDelivery(eventType: EventType): boolean {
-        return eventType === EventType.WIDE || eventType === EventType.NO_BALL;
-    }
-
     private shouldEndMatch(match: Match): boolean {
-        // Simplified logic - match ends if all overs are completed or all wickets are down
         const isAllOversComplete = match.currentOver >= match.overs;
         const isAllOut = (match.battingTeam === 'teamA' && match.teamAWickets >= 10) ||
             (match.battingTeam === 'teamB' && match.teamBWickets >= 10);
@@ -156,7 +134,7 @@ export class MatchesService {
         const commentaryData = JSON.stringify(commentary);
 
         await this.redisService.lpush(key, commentaryData);
-        await this.redisService.ltrim(key, 0, 9); // Keep only latest 10
+        await this.redisService.ltrim(key, 0, 9);
     }
 
     async getLatestCommentary(matchId: string): Promise<Commentary[]> {
@@ -176,7 +154,6 @@ export class MatchesService {
         match.status = MatchStatus.PAUSED;
         await match.save();
 
-        // Update cache
         await this.redisService.setObject(`match:${matchId}`, match, 3600);
 
         return match;
@@ -192,7 +169,6 @@ export class MatchesService {
         match.status = MatchStatus.ONGOING;
         await match.save();
 
-        // Update cache
         await this.redisService.setObject(`match:${matchId}`, match, 3600);
 
         return match;

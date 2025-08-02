@@ -1,6 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
-import { EventType } from '../../../types/match.types';
 
 @Schema({ timestamps: true, _id: true })
 export class Commentary extends Document {
@@ -10,26 +9,20 @@ export class Commentary extends Document {
   @Prop({ required: true })
   ball: number;
 
-  @Prop({ required: true, enum: EventType })
-  eventType: EventType;
-
   @Prop({ default: 0 })
   runs: number;
 
   @Prop()
   description: string;
 
-  @Prop()
-  batsman: string;
+  @Prop({ default : false})
+  isSix: boolean;
 
-  @Prop()
-  bowler: string;
+  @Prop({ default : false})
+  isFour: boolean;
 
   @Prop({ default: false })
   isWicket: boolean;
-
-  @Prop()
-  wicketType: string;
 
   @Prop({ default: Date.now })
   timestamp: Date;

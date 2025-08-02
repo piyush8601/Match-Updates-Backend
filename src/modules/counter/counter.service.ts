@@ -16,7 +16,6 @@ export class CounterService {
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
 
-    // Format as 4-digit string (0001, 0002, etc.)
     return counter.value.toString().padStart(4, '0');
   }
 }
